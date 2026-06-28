@@ -165,6 +165,11 @@ def client():
 def index():
     return render_template('index.html', async_mode=socketio.async_mode, pypilot_web_port=pypilot_web_port, tinypilot=tinypilot.tinypilot, translations=gettext_helper.translations, language=config['language'], languages=Markup(gettext_helper.LANGUAGES))
 
+
+@app.route('/classic')
+def classic():
+    return render_template('classic.html', async_mode=socketio.async_mode, pypilot_web_port=pypilot_web_port, tinypilot=tinypilot.tinypilot, translations=gettext_helper.translations, language=config['language'], languages=Markup(gettext_helper.LANGUAGES))
+
 class pypilotWeb(Namespace):
     def __init__(self, name):
         super(Namespace, self).__init__(name)

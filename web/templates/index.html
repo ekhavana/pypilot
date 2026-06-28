@@ -1,14 +1,12 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="{{language}}">
 <head>
-    <title>pypilot control</title>
-    <link rel="stylesheet" type="text/css" href="static/index.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="static/dark_theme.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="static/w3.css" />
-    <script type="text/javascript" src="static/jquery.min.js"></script>
+    <meta charset="utf-8">
+    <title>pypilot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="theme-color" content="#0b0f14">
+    <link rel="stylesheet" type="text/css" href="static/pypilot_app.css">
     <script type="text/javascript" src="static/socket.io.min.js"></script>
-    <script type="text/javascript" src="static/pypilot_control.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script>
       var pypilot_web_port = {{pypilot_web_port}};
       var tinypilot = {{tinypilot}};
@@ -24,159 +22,180 @@
       var language = '{{language}}';
       var languages = {{languages}};
     </script>
+    <script type="text/javascript" src="static/pypilot_app.js"></script>
 </head>
-<body>
-  <div class="w3-container font-resizable3">
-    <div id="headerTab" class="w3-row tabRow">
-      <a class="tabItem" href="javascript:void(0)" onclick="openTab(event, 'Control');">
-        <div class="w3-col tablink w3-red font-resizable active">{{_('Control')}}</div>
-      </a>
-      <a class="tabItem" href="javascript:void(0)" onclick="openTab(event, 'Gain');">
-        <div class="w3-col tablink font-resizable">{{_('Gain')}}</div>
-      </a>
-      <a class="tabItem" href="javascript:void(0)" onclick="openTab(event, 'Calibration');">
-        <div class="w3-col tablink font-resizable">{{_('Calibration')}}</div>
-      </a>
-      <a class="tabItem" href="javascript:void(0)" onclick="openTab(event, 'Configuration');">
-        <div class="w3-col tablink font-resizable">{{_('Configuration')}}</div>
-      </a>
-      <a class="tabItem" href="javascript:void(0)" onclick="openTab(event, 'Statistics');">
-        <div class="w3-col tablink font-resizable">{{_('Statistics')}}</div>
-      </a>
-    </div>
-    <br>
-    <div id="Control" class="w3-container tab">
-      <div class="w3-row" style="display:flex">
+<body data-theme="dark">
+  <header class="appbar">
+    <div class="brand">py<span>pilot</span></div>
+    <div class="spacer"></div>
+    <div id="conn-pill" class="status-pill"><span class="dot"></span><span id="conn-text">{{_('Not Connected')}}</span></div>
+    <button id="theme-btn" class="icon-btn" title="theme">&#9728;</button>
+  </header>
 
-        <div class="w3-col" style="font-size: 2em;width:20%;">{{_('Heading')}}</div>
-        <div class="w3-col" style="font-size: 3em;width:30%;" id="heading">---</div>
-
-        <div class="w3-col" style="font-size: 2em;width:20%;">{{_('Command')}}</div>
-        <div class="w3-col" style="font-size: 3em;width:30%;" id="heading_command">---</div>
-      </div>
-      <div id="steer_buttons_container" class="w3-row" >
-          <button id="port10" class="button font-resizable1 button-resizable" style="float:left">--</button>
-          <button id="port1" class="button font-resizable1 button-resizable" style="float:left">--</button> <!-- force no space between buttons-->
-          <span id="center_span">
-          <button id="center_button" class="button font-resizable1 button-resizable">|</button>
-          </span>
-          <button id="star10" class="button font-resizable1 button-resizable" style="float:right">--</button>
-          <button id="star1" class="button font-resizable1 button-resizable" style="float:right">--</button>
-      </div>
-      <br>
-      <br>
-      <div class="w3-row" style="display: flex; align-items: center;">
-        <select id="mode"></select>
-        <div style="flex-grow: 1; text-align: center;"></div>
-        <div class="toggle-button button-resizable1" id="tb_engaged" style="margin:auto">
-          <button id="engaged" class="font-resizable2 button-resizable2">AP</button>
+  <main>
+    <!-- ===================== CONTROL ===================== -->
+    <section id="view-control" class="view active">
+      <div class="card">
+        <div class="heading-wrap">
+          <canvas id="compass" class="compass" width="200" height="200"></canvas>
+          <div class="readouts">
+            <div class="readout">
+              <div class="label">{{_('Heading')}}</div>
+              <div class="value" id="heading">---</div>
+            </div>
+            <div class="readout">
+              <div class="label">{{_('Command')}}</div>
+              <div class="value cmd" id="heading_command">---</div>
+            </div>
+          </div>
         </div>
-        <div style="flex-grow: 1"></div>
-        <button id="tack_button" class="button button-resizable1 font-resizable2"></button>
-      </div>
-    </div>
-    <div id="Gain" class="w3-container tab" style="min-width: 480px;">
-      <br>
-      <br>
-      <div class="w3-row">
-        Profile&emsp;
-        <select id="profile"></select>
-        &emsp;&emsp;
-          <button class="button button-resizable2 font-resizable3" id="add_profile">{{_('Add')}}</button>
-          <button class="button button-resizable2 font-resizable3" id="remove_profile">{{_('Remove')}}</button>
-          <button class="button button-resizable2 font-resizable3" id="export_profiles">{{_('Export')}}</button>
-          <button class="button button-resizable2 font-resizable3" id="import_profiles">{{_('Import')}}</button>
-      </div>
-      <div id="gain_container"></div>
-    </div>
-    
-    <div id="Calibration" class="w3-container tab">
-      {{_('Magnetic Heading')}} <span id="imu_heading"></span>
-      {{_('Pitch')}} <span id="pitch"></span>
-      {{_('Roll')}} <span id="roll"></span>
-      <p>{{_('Press')}} <button id="level" class="button">{{_('here')}}</button>
-        {{_('when the boat is level to align the inertial sensors.')}}
-      </p>
-      <div class="progress">
-        <div id="levelprogress" class="bar"> </div>
-      </div>
-      <!--   for now hide this
-      <p>{{_('Press')}} <button id="align_compass" class="button">{{_('here')}}</button>
-        {{_('when the boat is traveling straight with no leeway, no currents, and gps to align the compass, or manually enter the compass offset')}}
-      </p>
-      <div class="progress">
-        <div id="align_compassprogress" class="bar"> </div>
-      </div>
-      -->
-      {{_('Magnetic Heading Offset')}}
-      <input type="number" id="imu_heading_offset" min=-180 max=180 value=0>Degrees
-      <p><label><input type="checkbox" id="accel_calibration_locked">{{_('Lock Accelerometer Calibration')}}</label>
-      <p><label><input type="checkbox" id="compass_calibration_locked">{{_('Lock Compass Calibration')}}</label>
-      </p>
-      <br><a href="/calibrationplot">{{_('calibration plot')}}</a>
-      <br>
-      <p>{{_('Rudder Sensor')}}: <span id="rudder"></span></p>
-      <p>
-        <button id="rudder_centered" class="button">{{_('centered')}}</button>
-        <button id="rudder_port_range" class="button">{{_('port range')}}</button>
-        <button id="rudder_starboard_range" class="button">{{_('starboard range')}}</button>
-        <button id="rudder_reset" class="button">{{_('reset')}}</button>
-      </p>
-      <p>
-        {{_('Rudder Range')}} 
-       <input type="number" id="rudder_range" min=10 max=100 value=30 style="text-align: right;">&nbsp;{{_('Degrees')}}
-      </p>
-    </div>
 
-    <div id="Configuration" class="w3-container tab" style="min-width: 560px;">
-      <div id='theme_selector' class="configuration_item">
-          <span class="value_name">{{_('Display')}}:</span>
-          <label for="theme_clear" class="theme_name">{{_('Clear')}}&nbsp;</label><input type="radio" name="theme" class="theme_option" id="theme_clear" value="clear">
-          <label for="theme_dark"  class="theme_name">{{_('Dark')}}&nbsp;</label><input type="radio" name="theme" class="theme_option" id="theme_dark"  value="dark" >
-      </div>      
-      <div id="configuration_container" ></div>
-      <div id='language_selector'>
-          <span class="value_name">{{_('Language')}}:</span>
-          <select id="language">'<option value="default">default</option></select>
-      </div>
-      <p>
-      {{_('NMEA Client host:port (leave blank for none) eg: 192.168.0.1:10110')}}
-      <p><input type="text" id="nmea_client">
-      <p>
-      {{_('SignalK server host:port(leave blank for zeroconf) eg: 192.168.0.1:3000')}}
-      <p><input type="text" id="signalk_host">
-    </div>
+        <div class="steer">
+          <button id="port10" class="port">&lt;&lt;</button>
+          <button id="port1" class="port">&lt;</button>
+          <span id="center_span"><button id="center_button" class="center" style="width:100%;height:100%">&#9679;</button></span>
+          <button id="star1" class="star">&gt;</button>
+          <button id="star10" class="star">&gt;&gt;</button>
+        </div>
 
-    <div id="Statistics" class="w3-container tab" style="font-size: 1em">
-      <br>{{_('Amp Hours')}}
-      <span id="amp_hours"></span>
-      <button id="reset_amp_hours" class="button">{{_('reset')}}</button>
-      <br>{{_('Voltage')}} <span id="voltage"></span>
-      <br>{{_('Controller temperature')}} <span id="controller_temp"></span> C
-      <span id="motor_temp"></span>
-      <br>{{_('Runtime')}} <span id="runtime"></span>
-      <br>{{_('Version')}} <span id="version"></span>
-      <br>{{_('Servo')}}: <b><span id="servo_engaged"></span></b>
-      <br>
-      <br><button id="logs" class="button font-resizable3 button-resizable2" onclick="window.location.href='logs';">{{_('Logs')}}</button>
-    </div>
-    <div id="Tack" class="w3-container tab">
-      <br>
-      <br>
-      <div class="w3-row">
-          <button id="tack_port" class="button font-resizable2 button-resizable3">{{_('Tack')}} {{_('Port')}}</button>
-          <button id="tack_cancel" class="button font-resizable2 button-resizable3" style="margin: 0; position: absolute;left: 50%; transform: translate(-50%, 0%);">{{_('Cancel')}}</button>
-          <button id="tack_starboard" class="button font-resizable2 button-resizable3" style="float:right">{{_('Tack')}} {{_('Starboard')}}</button>
+        <div class="control-row">
+          <button id="engage" class="engage">STANDBY</button>
+          <button id="tack-btn" class="tack-btn">{{_('Tack')}}</button>
+        </div>
+        <div class="control-row">
+          <select id="mode" class="mode"></select>
+        </div>
+        <div class="errline" id="aperror1" style="margin-top:10px"></div>
       </div>
-      Timeout <div id="tack_timeout" style="flex-grow: 1"></div>
-      State <div id="tack_state" style="flex-grow: 3"></div>
-    </div>
+    </section>
 
-    <div id="status_container" class="data_block" style="position:fixed;bottom:-10">
-      <br>pypilot {{_('Server')}}: <b><span id="connection"></span></b>
-      <br>Servo Flags: <b><span id="servoflags"></span></b>
-      <br>Autopilot {{_('Errors')}}: <b><span id="aperrors0"></span> <span id="aperrors1"></span> <span id="imu_warning"></span></b>
-      <br>{{_('Web Server Latency')}}: <b><span id="ping-pong"></span> ms</b>
-    </div>
+    <!-- ===================== TACK ===================== -->
+    <section id="view-tack" class="view">
+      <div class="card">
+        <h2>{{_('Tack')}}</h2>
+        <div class="btn-row">
+          <button id="tack_port" class="btn" style="flex:1">{{_('Tack')}} {{_('Port')}}</button>
+          <button id="tack_cancel" class="btn" style="flex:1">{{_('Cancel')}}</button>
+          <button id="tack_starboard" class="btn" style="flex:1">{{_('Tack')}} {{_('Starboard')}}</button>
+        </div>
+        <div class="kv"><span class="k">Timeout</span><span class="v" id="tack_timeout">--</span></div>
+        <div class="kv"><span class="k">State</span><span class="v" id="tack_state">--</span></div>
+      </div>
+    </section>
+
+    <!-- ===================== GAIN ===================== -->
+    <section id="view-gain" class="view">
+      <div class="card">
+        <h2>{{_('Profile')}}</h2>
+        <div class="control-row" style="margin-top:0">
+          <select id="profile" class="styled"></select>
+          <button id="add_profile" class="btn">{{_('Add')}}</button>
+          <button id="remove_profile" class="btn">{{_('Remove')}}</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>{{_('Gain')}}</h2>
+        <div class="control-row" style="margin-top:0;margin-bottom:14px">
+          <span class="muted" style="align-self:center">Pilot</span>
+          <select id="pilot" class="styled"></select>
+        </div>
+        <div id="gain-container"></div>
+      </div>
+    </section>
+
+    <!-- ===================== CALIBRATION ===================== -->
+    <section id="view-calibration" class="view">
+      <div class="card">
+        <h2>{{_('Inertial Sensors')}}</h2>
+        <div class="kv"><span class="k">{{_('Magnetic Heading')}}</span><span class="v" id="imu_heading">--</span></div>
+        <div class="kv"><span class="k">{{_('Pitch')}}</span><span class="v" id="pitch">--</span></div>
+        <div class="kv"><span class="k">{{_('Roll')}}</span><span class="v" id="roll">--</span></div>
+        <p class="muted">{{_('Press')}} <button id="level" class="btn">{{_('here')}}</button>
+          {{_('when the boat is level to align the inertial sensors.')}}</p>
+        <div class="progress"><div id="levelprogress"></div></div>
+        <div class="field">
+          <label>{{_('Magnetic Heading Offset')}} ({{_('Degrees')}})</label>
+          <input type="number" id="imu_heading_offset" min="-180" max="180" value="0">
+        </div>
+        <label class="check"><input type="checkbox" id="accel_lock">{{_('Lock Accelerometer Calibration')}}</label>
+        <label class="check"><input type="checkbox" id="compass_lock">{{_('Lock Compass Calibration')}}</label>
+        <p><a href="/calibrationplot">{{_('calibration plot')}}</a></p>
+      </div>
+      <div class="card">
+        <h2>{{_('Rudder')}}</h2>
+        <div class="kv"><span class="k">{{_('Rudder Sensor')}}</span><span class="v" id="rudder">--</span></div>
+        <div class="btn-row" style="margin:10px 0">
+          <button id="rudder_centered" class="btn">{{_('centered')}}</button>
+          <button id="rudder_port_range" class="btn">{{_('port range')}}</button>
+          <button id="rudder_starboard_range" class="btn">{{_('starboard range')}}</button>
+          <button id="rudder_reset" class="btn">{{_('reset')}}</button>
+        </div>
+        <div class="field">
+          <label>{{_('Rudder Range')}} ({{_('Degrees')}})</label>
+          <input type="number" id="rudder_range" min="10" max="100" value="30">
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CONFIG ===================== -->
+    <section id="view-config" class="view">
+      <div class="card">
+        <h2>{{_('Display')}}</h2>
+        <div class="field">
+          <label>{{_('Language')}}</label>
+          <select id="language" class="styled"><option value="default">default</option></select>
+        </div>
+      </div>
+      <div class="card">
+        <h2>{{_('Settings')}}</h2>
+        <div id="config-container"></div>
+      </div>
+      <div class="card">
+        <h2>{{_('Connections')}}</h2>
+        <div class="field">
+          <label>{{_('NMEA Client host:port (leave blank for none) eg: 192.168.0.1:10110')}}</label>
+          <input type="text" id="nmea_client">
+        </div>
+        <div class="field">
+          <label>{{_('SignalK server host:port(leave blank for zeroconf) eg: 192.168.0.1:3000')}}</label>
+          <input type="text" id="signalk_host">
+        </div>
+        <p><a href="/client">pypilot client</a>
+        {% if tinypilot %} &middot; <a href="/wifi">{{_('Configure Wifi')}}</a>{% endif %}
+        &middot; <a href="/classic">classic GUI</a></p>
+      </div>
+    </section>
+
+    <!-- ===================== STATS ===================== -->
+    <section id="view-stats" class="view">
+      <div class="card">
+        <h2>{{_('Statistics')}}</h2>
+        <div class="kv"><span class="k">{{_('Amp Hours')}}</span><span class="v"><span id="amp_hours">--</span>
+          <button id="reset_amp_hours" class="btn" style="min-height:32px;padding:4px 10px">{{_('reset')}}</button></span></div>
+        <div class="kv"><span class="k">{{_('Voltage')}}</span><span class="v" id="voltage">--</span></div>
+        <div class="kv"><span class="k">{{_('Controller temperature')}}</span><span class="v"><span id="controller_temp">--</span> C</span></div>
+        <div class="kv"><span class="k">{{_('Motor temperature')}}</span><span class="v"><span id="motor_temp">--</span></span></div>
+        <div class="kv"><span class="k">{{_('Runtime')}}</span><span class="v" id="runtime">--</span></div>
+        <div class="kv"><span class="k">{{_('Version')}}</span><span class="v" id="version">--</span></div>
+        <div class="kv"><span class="k">{{_('Servo')}}</span><span class="v" id="servo_engaged">--</span></div>
+        <p><button id="logs" class="btn" onclick="window.location.href='logs';">{{_('Logs')}}</button></p>
+      </div>
+      <div class="card">
+        <h2>{{_('Status')}}</h2>
+        <div class="kv"><span class="k">Servo Flags</span><span class="v" id="servoflags">--</span></div>
+        <div class="kv"><span class="k">{{_('Errors')}}</span><span class="v"><span id="aperror0"></span> <span id="imu_warning"></span></span></div>
+        <div class="kv"><span class="k">{{_('Web Server Latency')}}</span><span class="v" id="ping-pong">N/A</span></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== BOTTOM NAV ===================== -->
+  <nav class="bottomnav">
+    <button data-view="control" class="active"><span class="ico">&#9670;</span>{{_('Control')}}</button>
+    <button data-view="gain"><span class="ico">&#9881;</span>{{_('Gain')}}</button>
+    <button data-view="calibration"><span class="ico">&#10010;</span>{{_('Calibration')}}</button>
+    <button data-view="config"><span class="ico">&#9776;</span>{{_('Configuration')}}</button>
+    <button data-view="stats"><span class="ico">&#8801;</span>{{_('Statistics')}}</button>
+  </nav>
 </body>
 </html>

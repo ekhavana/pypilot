@@ -1,0 +1,462 @@
+/*
+#   Copyright (C) 2026 Sean D'Epagnier
+#
+# This Program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 3 of the License, or (at your option) any later version.
+#
+# Redesigned pypilot web GUI - dark, touch and sunlight optimized.
+*/
+
+:root {
+    --bg: #0b0f14;
+    --bg-elev: #141b23;
+    --bg-elev2: #1c2630;
+    --border: #2a3744;
+    --text: #e7eef5;
+    --text-dim: #8aa0b2;
+    --accent: #36a3ff;
+    --accent-dim: #1f5f97;
+    --port: #d23b3b;
+    --starboard: #2faa4a;
+    --engaged: #2faa4a;
+    --warn: #f0a23b;
+    --danger: #d23b3b;
+    --shadow: 0 6px 18px rgba(0, 0, 0, .45);
+    --radius: 14px;
+    --tap: 56px;
+}
+
+[data-theme="light"] {
+    --bg: #eef2f6;
+    --bg-elev: #ffffff;
+    --bg-elev2: #f2f6fa;
+    --border: #cdd8e2;
+    --text: #10202d;
+    --text-dim: #4a5b6b;
+    --accent: #0a6ed1;
+    --accent-dim: #8fc0f0;
+    --shadow: 0 6px 18px rgba(0, 0, 0, .12);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Roboto", system-ui, -apple-system, Segoe UI, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+button, select, input {
+    font-family: inherit;
+    color: var(--text);
+}
+
+/* ---------- top bar ---------- */
+.appbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+}
+
+.appbar .brand {
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: .5px;
+}
+
+.appbar .brand span { color: var(--accent); }
+
+.appbar .spacer { flex: 1; }
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    font-size: .8rem;
+    color: var(--text-dim);
+}
+
+.status-pill .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--danger);
+}
+
+.status-pill.ok .dot { background: var(--engaged); }
+.status-pill.warn .dot { background: var(--warn); }
+
+.icon-btn {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+/* ---------- main / views ---------- */
+main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: 88px;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+.card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+}
+
+.card h2 {
+    margin: 0 0 12px;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+/* ---------- control: heading display ---------- */
+.heading-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.compass {
+    width: 200px;
+    height: 200px;
+    flex: 0 0 auto;
+}
+
+.readouts {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+    min-width: 220px;
+    justify-content: center;
+}
+
+.readout { text-align: center; }
+
+.readout .label {
+    font-size: .8rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.readout .value {
+    font-size: 3.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.readout .value.cmd { color: var(--accent); }
+.readout .unit { font-size: 1.2rem; color: var(--text-dim); }
+
+/* ---------- steering ---------- */
+.steer {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.steer button {
+    min-height: 84px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-elev2);
+    color: var(--text);
+    font-size: 1.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: none;
+    transition: transform .05s, background .1s;
+}
+
+.steer button:active { transform: scale(.96); }
+.steer button.port { color: var(--port); }
+.steer button.star { color: var(--starboard); }
+.steer button.center { font-size: 1.2rem; color: var(--text-dim); }
+
+/* ---------- engage + mode ---------- */
+.control-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    align-items: stretch;
+}
+
+.engage {
+    flex: 2;
+    min-height: var(--tap);
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    background: var(--bg-elev2);
+    color: var(--text);
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.engage.on {
+    background: var(--engaged);
+    border-color: var(--engaged);
+    color: #06210d;
+}
+
+.tack-btn {
+    flex: 1;
+    min-height: var(--tap);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-elev2);
+    color: var(--text);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+select.mode, select.styled {
+    flex: 1;
+    min-height: var(--tap);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-elev2);
+    color: var(--text);
+    font-size: 1.1rem;
+    padding: 0 14px;
+}
+
+select.styled { min-height: 44px; }
+
+/* ---------- generic controls ---------- */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.field label {
+    font-size: .85rem;
+    color: var(--text-dim);
+}
+
+input[type="text"], input[type="number"] {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1rem;
+    width: 100%;
+}
+
+.btn {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.btn:active { transform: scale(.98); }
+.btn.accent { background: var(--accent-dim); border-color: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* range / slider control */
+.range-ctl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 6px 12px;
+    margin-bottom: 16px;
+}
+
+.range-ctl .rc-name {
+    font-size: .95rem;
+    color: var(--text);
+    word-break: break-word;
+}
+
+.range-ctl .rc-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 56px;
+    text-align: right;
+}
+
+.range-ctl .rc-body {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.range-ctl input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+.rc-step {
+    width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev2);
+    color: var(--text);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.bar-track {
+    flex: 1;
+    height: 22px;
+    border-radius: 11px;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+}
+
+.progress {
+    height: 22px;
+    border-radius: 11px;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.progress > div {
+    height: 100%;
+    width: 0%;
+    background: var(--engaged);
+}
+
+.kv {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.kv:last-child { border-bottom: none; }
+.kv .k { color: var(--text-dim); }
+.kv .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+}
+
+.check input { width: 22px; height: 22px; accent-color: var(--accent); }
+
+a { color: var(--accent); }
+
+.muted { color: var(--text-dim); font-size: .9rem; }
+
+.errline { color: var(--warn); min-height: 1.2em; }
+
+/* ---------- bottom nav ---------- */
+.bottomnav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    background: var(--bg-elev);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+}
+
+.bottomnav button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    padding: 10px 4px;
+    font-size: .72rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.bottomnav button .ico { font-size: 1.3rem; line-height: 1; }
+.bottomnav button.active { color: var(--accent); }
+
+.segmented { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.segmented button {
+    flex: 1;
+    min-width: 70px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev2);
+    color: var(--text);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.segmented button.sel {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+@media (max-width: 520px) {
+    .readout .value { font-size: 2.6rem; }
+    .compass { width: 150px; height: 150px; }
+    .steer button { font-size: 1.4rem; min-height: 72px; }
+}
