@@ -86,13 +86,15 @@ def log(name):
     return r
 
 
-@app.route('/wifi', methods=['GET', 'POST'])
-def wifi():
-    networking = os.path.expanduser('~') + '/.pypilot/networking.txt'
+def networking_path():
+    return os.path.expanduser('~') + '/.pypilot/networking.txt'
+
+
+def read_wifi():
     wifi = {'mode': 'Master', 'ssid': 'pypilot', 'key': '',
             'client_ssid': 'openplotter', 'client_key': '12345678', 'client_address': '10.10.10.60'}
     try:
-        f = open(networking)
+        f = open(networking_path())
         while True:
             l = f.readline()
             if not l:
@@ -105,21 +107,10 @@ def wifi():
         f.close()
     except OSError:
         pass
+    return wifi
 
-    if request.method == 'POST':
-        try:
-            for name in request.form:
-                wifi[name] = str(request.form[name])
 
-            f = open(networking, 'w')
-            for name in wifi:
-                f.write(name+'='+wifi[name]+'\n')
-            f.close()
-
-            os.system('/opt/networking.sh')
-        except Exception as e:
-            print('exception!', e)
-
+def wifi_leases(wifi):
     try:
         leases = '<table id="leases">'
         leases += '<tr><th>IP Address</th><th>Mac Address</th><th>Name</th><th>Lease ends on</th></tr>'
@@ -149,7 +140,27 @@ def wifi():
         leases = ''
     if 'Master' not in wifi['mode']:
         leases = ''
+    return leases
 
+
+@app.route('/wifi', methods=['GET', 'POST'])
+def wifi():
+    wifi = read_wifi()
+    if request.method == 'POST':
+        try:
+            for name in request.form:
+                wifi[name] = str(request.form[name])
+
+            f = open(networking_path(), 'w')
+            for name in wifi:
+                f.write(name+'='+wifi[name]+'\n')
+            f.close()
+
+            os.system('/opt/networking.sh')
+        except Exception as e:
+            print('exception!', e)
+
+    leases = wifi_leases(wifi)
     return render_template('wifi.html', async_mode=socketio.async_mode, wifi=Markup(wifi), leases=Markup(leases))
 
 @app.route('/calibrationplot')
@@ -163,7 +174,13 @@ def client():
 
 @app.route('/')
 def index():
-    return render_template('index.html', async_mode=socketio.async_mode, pypilot_web_port=pypilot_web_port, tinypilot=tinypilot.tinypilot, translations=gettext_helper.translations, language=config['language'], languages=Markup(gettext_helper.LANGUAGES))
+    wifi = read_wifi() if tinypilot.tinypilot else {}
+    return render_template('index.html', async_mode=socketio.async_mode, pypilot_web_port=pypilot_web_port, tinypilot=tinypilot.tinypilot, translations=gettext_helper.translations, language=config['language'], languages=Markup(gettext_helper.LANGUAGES), wifi=Markup(pyjson.dumps(wifi)), wifi_leases=Markup(wifi_leases(wifi) if tinypilot.tinypilot else ''))
+
+
+@app.route('/classic')
+def classic():
+    return render_template('classic.html', async_mode=socketio.async_mode, pypilot_web_port=pypilot_web_port, tinypilot=tinypilot.tinypilot, translations=gettext_helper.translations, language=config['language'], languages=Markup(gettext_helper.LANGUAGES))
 
 class pypilotWeb(Namespace):
     def __init__(self, name):
