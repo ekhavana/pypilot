@@ -563,6 +563,16 @@ details.card[open] > summary { margin-bottom: 12px; }
 .linkrow { display: flex; flex-wrap: wrap; gap: 8px; }
 .linkrow .btn { flex: 1; min-width: 130px; text-align: center; text-decoration: none; }
 
+#wifi_submit { width: 100%; margin-top: 6px; }
+#leases { width: 100%; border-collapse: collapse; font-size: .82rem; margin-top: 10px; }
+#leases th, #leases td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+}
+#leases th { color: var(--text); }
+
 @media (max-width: 520px) {
     .readout .value { font-size: 2.6rem; }
     .compass { width: 150px; height: 150px; }

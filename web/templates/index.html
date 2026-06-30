@@ -21,6 +21,7 @@
       }
       var language = '{{language}}';
       var languages = {{languages}};
+      var wifiConfig = {{ wifi if wifi else '{}' }};
     </script>
     <script type="text/javascript" src="static/pypilot_calplot.js"></script>
     <script type="text/javascript" src="static/pypilot_app.js"></script>
@@ -192,6 +193,49 @@
         <input type="text" id="adv_filter" class="adv-filter" placeholder="filter...">
         <div id="advanced-container" class="adv-table"></div>
       </details>
+
+      {% if tinypilot %}
+      <details class="card" id="wifi-card">
+        <summary><h2>{{_('Wifi')}}</h2></summary>
+        <p class="muted">{{_('Tinypilot Wireless Configuration')}}</p>
+        <div class="field">
+          <label>{{_('Mode')}}</label>
+          <select id="wifi_mode" class="styled">
+            <option value="Master">Master (AP)</option>
+            <option value="Managed">Managed (client)</option>
+            <option value="Master+Managed">AP and client</option>
+          </select>
+        </div>
+        <div id="wifi-master">
+          <div class="field">
+            <label>{{_('Access Point')}} SSID</label>
+            <input type="text" id="wifi_ssid">
+          </div>
+          <div class="field">
+            <label>{{_('Access Point')}} {{_('Key (leave blank for no encryption)')}}</label>
+            <input type="text" id="wifi_key">
+          </div>
+        </div>
+        <div id="wifi-managed">
+          <div class="field">
+            <label>{{_('Client')}} SSID</label>
+            <input type="text" id="wifi_client_ssid">
+          </div>
+          <div class="field">
+            <label>{{_('Client')}} {{_('Key (leave blank for no encryption)')}}</label>
+            <input type="text" id="wifi_client_key">
+          </div>
+          <div class="field">
+            <label>{{_('Client Mode Address (leave blank for dhcp)')}}</label>
+            <input type="text" id="wifi_client_address">
+          </div>
+        </div>
+        <button id="wifi_submit" class="btn accent">{{_('Submit')}}</button>
+        <p class="muted" id="wifi_status"></p>
+        <p class="muted">{{_('If there is a problem, edit the file')}} /.pypilot/networking.txt</p>
+        <div id="wifi_leases" class="adv-table">{{ wifi_leases }}</div>
+      </details>
+      {% endif %}
 
       <div class="card">
         <h2>{{_('More')}}</h2>

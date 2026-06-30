@@ -628,6 +628,41 @@
         if (filter) filter.addEventListener("input", filterAdvanced);
     }
 
+    function bindWifi() {
+        var card = $("wifi-card");
+        if (!card) return;
+        var cfg = (typeof wifiConfig !== "undefined" && wifiConfig) ? wifiConfig : {};
+        var fields = {
+            mode: "wifi_mode", ssid: "wifi_ssid", key: "wifi_key",
+            client_ssid: "wifi_client_ssid", client_key: "wifi_client_key",
+            client_address: "wifi_client_address"
+        };
+        for (var k in fields) if ($(fields[k]) && (k in cfg)) $(fields[k]).value = cfg[k];
+
+        function updateMode() {
+            var m = $("wifi_mode").value;
+            $("wifi-master").style.display = m.indexOf("Master") !== -1 ? "" : "none";
+            $("wifi-managed").style.display = m.indexOf("Managed") !== -1 ? "" : "none";
+        }
+        $("wifi_mode").addEventListener("change", updateMode);
+        updateMode();
+
+        $("wifi_submit").addEventListener("click", function () {
+            var data = new URLSearchParams();
+            for (var f in fields) if ($(fields[f])) data.append(f, $(fields[f]).value);
+            $("wifi_status").textContent = T("Saving...");
+            fetch("/wifi", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: data.toString()
+            }).then(function (r) {
+                $("wifi_status").textContent = r.ok ? T("Saved. Applying network settings...") : T("Error saving wifi settings");
+            }).catch(function () {
+                $("wifi_status").textContent = T("Error saving wifi settings");
+            });
+        });
+    }
+
     /* ------------------------------------------------------------------ */
     /* watches per view                                                    */
     /* ------------------------------------------------------------------ */
@@ -759,6 +794,7 @@
         bindControls();
         bindCalPlot();
         bindAdvanced();
+        bindWifi();
         renderEngaged();
         openView("control");
 
