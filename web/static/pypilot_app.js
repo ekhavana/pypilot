@@ -19,11 +19,28 @@
     var socket = null;
     var watches = {};          // name -> period currently requested
     var listValues = {};       // metadata from pypilot_values
+    var lastValues = {};       // last received value for every name
     var gains = [];            // ap.*.* AutopilotGain names
     var confNames = [];        // RangeSetting names
     var profiledNames = [];
     var currentView = "control";
     var touch = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+
+    var calPlotOpen = false, calPlotInited = false;
+    var advOpen = false;
+    var advControls = {};      // name -> update(value) for the advanced editor
+
+    // always-on watches the UI needs regardless of the active view
+    var PRIMARY = [
+        "ap.enabled", "ap.mode", "ap.modes", "ap.heading_command", "ap.pilot",
+        "ap.tack.timeout", "ap.tack.state", "ap.tack.direction",
+        "profile", "profiles", "rudder.source",
+        "imu.heading_offset", "imu.compass.calibration.locked", "imu.accel.calibration.locked",
+        "rudder.range", "nmea.client", "signalk.host",
+        "imu.error", "imu.warning", "servo.controller", "servo.flags"
+    ];
+    var STATS = ["servo.amp_hours", "servo.voltage", "servo.controller_temp",
+                 "servo.motor_temp", "ap.runtime", "ap.version", "servo.engaged"];
 
     // state mirrored from server
     var st = {
@@ -298,9 +315,101 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /* advanced editor: every pypilot value, live (like the client page)   */
+    /* ------------------------------------------------------------------ */
+    function buildAdvanced() {
+        var cont = $("advanced-container");
+        if (!cont) return;
+        cont.innerHTML = "";
+        advControls = {};
+        var names = Object.keys(listValues).sort();
+
+        for (var i = 0; i < names.length; i++) {
+            (function (name) {
+                var info = listValues[name] || {};
+                var type = info.type;
+                var row = document.createElement("div");
+                row.className = "adv-row";
+                row.dataset.name = name;
+
+                var nameEl = document.createElement("div");
+                nameEl.className = "adv-name";
+                nameEl.textContent = name + (info.units ? " (" + info.units + ")" : "");
+                row.appendChild(nameEl);
+
+                var ctl = document.createElement("div");
+                ctl.className = "adv-ctl";
+                row.appendChild(ctl);
+
+                if (type === "RangeProperty" || type === "RangeSetting" || "AutopilotGain" in info) {
+                    var min = ("min" in info) ? Number(info.min) : 0;
+                    var max = ("max" in info) ? Number(info.max) : 1;
+                    var s = document.createElement("input");
+                    s.type = "range"; s.min = min; s.max = max;
+                    s.step = ((max - min) / 1000) || 0.0001;
+                    var num = document.createElement("span");
+                    num.className = "adv-num"; num.textContent = "--";
+                    s.onchange = function () { set(name, s.valueAsNumber); };
+                    s.oninput = function () { num.textContent = round(s.valueAsNumber, 4); };
+                    ctl.appendChild(s); ctl.appendChild(num);
+                    advControls[name] = function (v) { s.value = v; num.textContent = round(Number(v), 4); };
+                } else if (type === "BooleanProperty") {
+                    var cb = document.createElement("input");
+                    cb.type = "checkbox";
+                    cb.onchange = function () { set(name, cb.checked); };
+                    ctl.appendChild(cb);
+                    advControls[name] = function (v) { cb.checked = !!v; };
+                } else if (type === "EnumProperty") {
+                    var sel = document.createElement("select");
+                    var choices = info.choices || [];
+                    for (var c = 0; c < choices.length; c++) {
+                        var o = document.createElement("option");
+                        o.value = String(choices[c]); o.textContent = String(choices[c]);
+                        sel.appendChild(o);
+                    }
+                    sel.onchange = function () { set(name, sel.value); };
+                    ctl.appendChild(sel);
+                    advControls[name] = function (v) { sel.value = String(v); };
+                } else if (type === "ResettableValue") {
+                    var val = document.createElement("span");
+                    val.className = "adv-val"; val.textContent = "--";
+                    var btn = document.createElement("button");
+                    btn.className = "btn"; btn.textContent = T("Reset");
+                    btn.onclick = function () { set(name, 0); };
+                    ctl.appendChild(val); ctl.appendChild(btn);
+                    advControls[name] = function (v) { val.textContent = String(v); };
+                } else {
+                    var ro = document.createElement("span");
+                    ro.className = "adv-val"; ro.textContent = "--";
+                    ctl.appendChild(ro);
+                    advControls[name] = function (v) {
+                        ro.textContent = (typeof v === "object") ? JSON.stringify(v) : String(v);
+                    };
+                }
+                cont.appendChild(row);
+            })(names[i]);
+        }
+        updateAdvanced(lastValues);
+        filterAdvanced();
+    }
+
+    function updateAdvanced(data) {
+        for (var name in data)
+            if (advControls[name]) advControls[name](data[name]);
+    }
+
+    function filterAdvanced() {
+        var f = ($("adv_filter") && $("adv_filter").value || "").toLowerCase();
+        var rows = $("advanced-container").querySelectorAll(".adv-row");
+        for (var i = 0; i < rows.length; i++)
+            rows[i].style.display = rows[i].dataset.name.toLowerCase().indexOf(f) === -1 ? "none" : "";
+    }
+
+    /* ------------------------------------------------------------------ */
     /* incoming value updates                                              */
     /* ------------------------------------------------------------------ */
     function applyData(data) {
+        for (var k in data) lastValues[k] = data[k];
         if ("ap.mode" in data) { st.mode = data["ap.mode"]; $("mode").value = st.mode; }
         if ("ap.modes" in data) { st.modes = data["ap.modes"]; buildModes(); }
         if ("ap.heading" in data) { st.heading = data["ap.heading"]; $("heading").textContent = headingStr(st.heading); drawCompass(); }
@@ -356,6 +465,9 @@
         if ("imu.error" in data) $("aperror0").textContent = data["imu.error"] || "";
         if ("imu.warning" in data) $("imu_warning").textContent = data["imu.warning"] || "";
         if ("servo.controller" in data) $("aperror1").textContent = (data["servo.controller"] === "none") ? T("no motor controller!") : "";
+
+        if (calPlotOpen && typeof CalPlot !== "undefined") CalPlot.handle(data);
+        if (advOpen) updateAdvanced(data);
     }
 
     function renderEngaged() {
@@ -477,17 +589,72 @@
         $("reset_amp_hours").onclick = function () { set("servo.amp_hours", 0); };
     }
 
+    function bindCalPlot() {
+        var card = $("calplot-card");
+        if (!card) return;
+        card.addEventListener("toggle", function () {
+            calPlotOpen = card.open;
+            if (calPlotOpen && !calPlotInited && typeof CalPlot !== "undefined") {
+                calPlotInited = CalPlot.init($("calcanvas"));
+                if (!calPlotInited) {
+                    var cv = $("calcanvas");
+                    if (cv) { cv.style.display = "none"; }
+                    var msg = document.createElement("p");
+                    msg.className = "muted";
+                    msg.textContent = T("WebGL is not available in this browser; the 3D plot cannot be shown.");
+                    cv.parentNode.insertBefore(msg, cv);
+                }
+            }
+            applyWatches();
+        });
+        var accel = $("calplot_accel"), compass = $("calplot_compass");
+        function pick(p) {
+            if (typeof CalPlot !== "undefined") CalPlot.setPlot(p);
+            applyWatches();
+        }
+        if (accel) accel.addEventListener("change", function () { if (this.checked) pick("accel"); });
+        if (compass) compass.addEventListener("change", function () { if (this.checked) pick("compass"); });
+    }
+
+    function bindAdvanced() {
+        var card = $("advanced-card");
+        if (!card) return;
+        card.addEventListener("toggle", function () {
+            advOpen = card.open;
+            if (advOpen) buildAdvanced();
+            applyWatches();
+        });
+        var filter = $("adv_filter");
+        if (filter) filter.addEventListener("input", filterAdvanced);
+    }
+
     /* ------------------------------------------------------------------ */
     /* watches per view                                                    */
     /* ------------------------------------------------------------------ */
-    function setupWatches() {
+    function desiredWatches() {
+        var d = {};
+        function add(names, period) { for (var i = 0; i < names.length; i++) d[names[i]] = period; }
+        add(PRIMARY, 0.5);
         var v = currentView;
-        watchMany(["ap.heading", "rudder.source"], v === "control", 0.5);
-        watchMany(gains, v === "gain", 1);
-        watchMany(["imu.heading", "imu.pitch", "imu.roll", "rudder.angle"], v === "calibration", 0.5);
-        watchMany(confNames, v === "config", 1);
-        watchMany(["servo.amp_hours", "servo.voltage", "servo.controller_temp", "servo.motor_temp",
-                   "ap.runtime", "ap.version", "servo.engaged"], v === "stats", 1);
+        if (v === "control") add(["ap.heading", "rudder.source"], 0.5);
+        else if (v === "gain") add(gains, 1);
+        else if (v === "calibration") add(["imu.heading", "imu.pitch", "imu.roll", "rudder.angle"], 0.5);
+        else if (v === "config") add(confNames, 1);
+        else if (v === "stats") add(STATS, 1);
+
+        if (v === "calibration" && calPlotOpen && typeof CalPlot !== "undefined") {
+            add(CalPlot.metaWatches(), true);
+            add(CalPlot.plotWatches(CalPlot.currentPlot()), 0.25);
+        }
+        if (v === "config" && advOpen) add(Object.keys(listValues), 1);
+        return d;
+    }
+
+    function applyWatches() {
+        var d = desiredWatches();
+        var n;
+        for (n in watches) if (watches[n] !== false && !(n in d)) watch(n, false);
+        for (n in d) if (watches[n] !== d[n]) watch(n, d[n]);
     }
 
     /* ------------------------------------------------------------------ */
@@ -502,7 +669,7 @@
         for (var j = 0; j < navs.length; j++)
             navs[j].classList.toggle("active", navs[j].dataset.view === name);
         if (name === "control") drawCompass();
-        setupWatches();
+        applyWatches();
     }
 
     /* ------------------------------------------------------------------ */
@@ -545,22 +712,16 @@
             listValues = JSON.parse(msg);
             watches = {};
             rangeControls = {};
+            advControls = {};
+            lastValues = {};
             setConnection("connected");
-
-            // primary watches that the UI always wants
-            ["ap.enabled", "ap.mode", "ap.modes", "ap.heading_command", "ap.pilot",
-             "ap.tack.timeout", "ap.tack.state", "ap.tack.direction",
-             "profile", "profiles", "rudder.source",
-             "imu.heading_offset", "imu.compass.calibration.locked", "imu.accel.calibration.locked",
-             "rudder.range", "nmea.client", "signalk.host",
-             "imu.error", "imu.warning", "servo.controller", "servo.flags"
-            ].forEach(function (n) { watch(n, 0.5); });
 
             buildModes();
             buildGains();
             buildConfig();
             renderProfiles();
-            setupWatches();
+            if (advOpen) buildAdvanced();
+            applyWatches();
         });
 
         socket.on("pypilot", function (msg) { applyData(JSON.parse(msg)); });
@@ -596,6 +757,8 @@
 
         bindSteer();
         bindControls();
+        bindCalPlot();
+        bindAdvanced();
         renderEngaged();
         openView("control");
 

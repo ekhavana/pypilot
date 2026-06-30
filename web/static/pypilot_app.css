@@ -455,8 +455,119 @@ a { color: var(--accent); }
     color: var(--text);
 }
 
+/* ---------- collapsible cards (details/summary) ---------- */
+details.card > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+}
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary h2 { margin: 0; }
+details.card > summary::after {
+    content: "\25BC";
+    color: var(--text-dim);
+    font-size: .8rem;
+    transition: transform .15s ease;
+}
+details.card[open] > summary::after { transform: rotate(180deg); }
+details.card[open] > summary { margin-bottom: 12px; }
+
+/* ---------- calibration plot ---------- */
+.plot-controls { display: flex; gap: 18px; margin-bottom: 12px; }
+.radio { display: flex; align-items: center; gap: 6px; min-height: 44px; }
+.radio input { width: 20px; height: 20px; }
+
+.calcanvas {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1;
+    display: block;
+    margin: 0 auto 12px;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    touch-action: none;
+}
+
+.cal-key { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: .85rem; }
+.cal-key span[class^="dot-"] {
+    display: inline-block;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+.dot-current { background: #ff3b3b; }
+.dot-history { background: #2faa4a; }
+.dot-points { background: #19c7c7; }
+.dot-future { background: #e7d23b; }
+
+.logbox {
+    white-space: pre-line;
+    font-family: ui-monospace, monospace;
+    font-size: .78rem;
+    color: var(--text-dim);
+    max-height: 120px;
+    overflow: auto;
+    margin-top: 8px;
+}
+
+/* ---------- advanced value editor ---------- */
+.adv-filter {
+    width: 100%;
+    min-height: 44px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev2);
+    color: var(--text);
+}
+.adv-table { max-height: 60vh; overflow: auto; }
+.adv-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+.adv-row:last-child { border-bottom: none; }
+.adv-name {
+    flex: 1 1 45%;
+    min-width: 0;
+    word-break: break-word;
+    color: var(--text-dim);
+    font-size: .85rem;
+}
+.adv-ctl {
+    flex: 1 1 50%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.adv-ctl input[type="range"] { flex: 1; min-width: 80px; }
+.adv-ctl select { min-height: 40px; flex: 1; }
+.adv-num, .adv-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    min-width: 56px;
+    text-align: right;
+    word-break: break-word;
+}
+.adv-ctl input[type="checkbox"] { width: 24px; height: 24px; }
+
+.linkrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.linkrow .btn { flex: 1; min-width: 130px; text-align: center; text-decoration: none; }
+
 @media (max-width: 520px) {
     .readout .value { font-size: 2.6rem; }
     .compass { width: 150px; height: 150px; }
     .steer button { font-size: 1.4rem; min-height: 72px; }
+    .adv-row { flex-wrap: wrap; }
+    .adv-name { flex-basis: 100%; }
+    .adv-ctl { flex-basis: 100%; justify-content: flex-start; }
 }

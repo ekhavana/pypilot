@@ -22,6 +22,7 @@
       var language = '{{language}}';
       var languages = {{languages}};
     </script>
+    <script type="text/javascript" src="static/pypilot_calplot.js"></script>
     <script type="text/javascript" src="static/pypilot_app.js"></script>
 </head>
 <body data-theme="dark">
@@ -119,8 +120,31 @@
         </div>
         <label class="check"><input type="checkbox" id="accel_lock">{{_('Lock Accelerometer Calibration')}}</label>
         <label class="check"><input type="checkbox" id="compass_lock">{{_('Lock Compass Calibration')}}</label>
-        <p><a href="/calibrationplot">{{_('calibration plot')}}</a></p>
       </div>
+
+      <details class="card" id="calplot-card">
+        <summary><h2>{{_('Calibration Plot')}}</h2></summary>
+        <div class="plot-controls">
+          <label class="radio"><input type="radio" name="calplot" id="calplot_accel"> accel</label>
+          <label class="radio"><input type="radio" name="calplot" id="calplot_compass" checked> compass</label>
+        </div>
+        <canvas id="calcanvas" class="calcanvas" width="400" height="400"></canvas>
+        <p class="muted">{{_('The raw sensor readings should fall on a sphere when calibrated.  The age will reset when the calibration updates.')}}</p>
+        <p class="cal-key">
+          <span class="dot-current"></span>{{_('current')}}
+          <span class="dot-history"></span>{{_('history')}}
+          <span class="dot-points"></span>{{_('calibration points')}}
+          <span class="dot-future"></span>{{_('future calibration points')}}
+        </p>
+        <div class="kv"><span class="k">Accel calibration</span><span class="v" id="accel_calibration">--</span></div>
+        <div class="kv"><span class="k">Accel age</span><span class="v" id="accel_calibration_age">--</span></div>
+        <div class="kv"><span class="k">Compass calibration</span><span class="v" id="compass_calibration">--</span></div>
+        <div class="kv"><span class="k">Compass age</span><span class="v" id="compass_calibration_age">--</span></div>
+        <div class="kv"><span class="k">IMU status</span><span class="v"><span id="cal_imu_error"></span> <span id="cal_imu_warning"></span></span></div>
+        <div class="logbox" id="compass_calibration_log"></div>
+        <div class="logbox" id="accel_calibration_log"></div>
+      </details>
+
       <div class="card">
         <h2>{{_('Rudder')}}</h2>
         <div class="kv"><span class="k">{{_('Rudder Sensor')}}</span><span class="v" id="rudder">--</span></div>
@@ -160,9 +184,23 @@
           <label>{{_('SignalK server host:port(leave blank for zeroconf) eg: 192.168.0.1:3000')}}</label>
           <input type="text" id="signalk_host">
         </div>
-        <p><a href="/client">pypilot client</a>
-        {% if tinypilot %} &middot; <a href="/wifi">{{_('Configure Wifi')}}</a>{% endif %}
-        &middot; <a href="/classic">classic GUI</a></p>
+      </div>
+
+      <details class="card" id="advanced-card">
+        <summary><h2>{{_('Advanced')}}</h2></summary>
+        <p class="muted">{{_('All pypilot values, live. Editing here changes settings directly.')}}</p>
+        <input type="text" id="adv_filter" class="adv-filter" placeholder="filter...">
+        <div id="advanced-container" class="adv-table"></div>
+      </details>
+
+      <div class="card">
+        <h2>{{_('More')}}</h2>
+        <p class="linkrow">
+          {% if tinypilot %}<a href="/wifi" class="btn">{{_('Configure Wifi')}}</a>{% endif %}
+          <a href="/calibrationplot" class="btn">{{_('calibration plot')}}</a>
+          <a href="/client" class="btn">pypilot client</a>
+          <a href="/classic" class="btn">classic GUI</a>
+        </p>
       </div>
     </section>
 
